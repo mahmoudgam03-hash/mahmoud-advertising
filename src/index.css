@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #0a0b0e;
+    --bg-surface: #12141a;
+    --accent-blue: #1d6bff;
+    --accent-gold: #d4af37;
+    --font-ar: "Cairo", "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-en: "Plus Jakarta Sans", "Cairo", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--bg-primary);
+    color: #f4f4f6;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+  }
+
+  html[lang="ar"] body {
+    font-family: var(--font-ar);
+  }
+
+  html[lang="en"] body {
+    font-family: var(--font-en);
+  }
+
+  .font-mono-tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Realistic LED Halo & Edge-Lit Illumination Utilities */
+.led-glow-gold {
+  box-shadow:
+    0 0 18px rgba(212, 175, 55, 0.28),
+    0 0 48px rgba(212, 175, 55, 0.14),
+    inset 0 1px 0 rgba(255, 232, 163, 0.25);
+}
+
+.led-glow-blue {
+  box-shadow:
+    0 0 18px rgba(29, 107, 255, 0.34),
+    0 0 48px rgba(29, 107, 255, 0.16),
+    inset 0 1px 0 rgba(147, 197, 253, 0.25);
+}
+
+.led-text-gold {
+  text-shadow:
+    0 0 16px rgba(212, 175, 55, 0.45),
+    0 0 36px rgba(212, 175, 55, 0.2);
+}
+
+.led-text-blue {
+  text-shadow:
+    0 0 16px rgba(59, 130, 246, 0.55),
+    0 0 36px rgba(29, 107, 255, 0.28);
+}
+
+.perspective-scene {
+  perspective: 1100px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Luxury Services Marquee Strip */
+@keyframes msa-marquee-ltr {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes msa-marquee-rtl {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(50%, 0, 0);
+  }
+}
+
+.msa-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: msa-marquee-ltr 34s linear infinite;
+}
+
+html[dir="rtl"] .msa-marquee-track {
+  animation-name: msa-marquee-rtl;
+}
+
+.msa-marquee-wrap:hover .msa-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Glossy Black & Radiant Gold Studio Surfaces */
+.glossy-black-card {
+  background: linear-gradient(155deg, #1b1e28 0%, #0b0c11 48%, #040507 100%);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 18px 42px -12px rgba(0, 0, 0, 0.85),
+    0 0 24px -10px rgba(212, 175, 55, 0.22);
+}
+
+.glossy-black-icon {
+  background: linear-gradient(145deg, #272b36 0%, #090b0f 55%, #020304 100%);
+  border: 1px solid rgba(245, 208, 97, 0.45);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.28),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.85),
+    0 6px 16px rgba(0, 0, 0, 0.65),
+    0 0 14px rgba(212, 175, 55, 0.2);
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(135deg, #fff1b8 0%, #f5d061 38%, #d4af37 70%, #b8891b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
