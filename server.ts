@@ -66,7 +66,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 12 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) {
       cb(null, true);
@@ -78,7 +78,7 @@ const upload = multer({
 
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 12 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) {
       cb(null, true);
@@ -170,6 +170,7 @@ async function startServer(): Promise<void> {
     'src/assets/images/hero_luxury_signage_1794750813882.jpg'
   );
   const ASSETS_IMAGES_DIR = path.resolve(process.cwd(), 'src/assets/images');
+  app.use('/src/assets/images', express.static(ASSETS_IMAGES_DIR, { maxAge: '7d' }));
 
   const handleOgImage = (_req: express.Request, res: express.Response) => {
     const pub = getPublicSiteData(false);

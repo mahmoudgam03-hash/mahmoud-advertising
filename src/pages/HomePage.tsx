@@ -1,29 +1,62 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
+  Edit3,
   Eye,
+  Send,
   ShieldCheck,
+  SlidersHorizontal,
   Layers,
   Cpu,
   Sparkles,
   Compass,
+  ZoomIn,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { SmartImage } from '../components/SmartImage';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { SignagePreview3D } from '../components/SignagePreview3D';
 import { ProjectLightbox } from '../components/ProjectLightbox';
+import {
+  PortfolioManagerModal,
+  PORTFOLIO_CATEGORIES,
+  DEFAULT_BRAND_FACE_IMAGE,
+} from '../components/PortfolioManagerModal';
 import type { PortfolioProject } from '../shared/types';
 
 export function HomePage() {
   const { lang, navigate, data, loading, getCategoryLabel } = useApp();
   const isAr = lang === 'ar';
   const [selectedProject, setSelectedProject] = useState<PortfolioProject | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [managerTab, setManagerTab] = useState<'form' | 'list' | 'brand'>('form');
+  const [editingProject, setEditingProject] = useState<PortfolioProject | null>(null);
 
   const content = data?.content;
+  const brandFaceImage = content?.logoUrl || DEFAULT_BRAND_FACE_IMAGE;
   const services = data?.services || [];
+  const allProjects = data?.projects || [];
   const featuredServices = services.filter((s) => s.featured).slice(0, 5);
-  const featuredProjects = (data?.projects || []).slice(0, 4);
+
+  const homeCategories = useMemo(() => {
+    const set = new Set<string>(PORTFOLIO_CATEGORIES);
+    for (const p of allProjects) set.add(p.category);
+    return Array.from(set);
+  }, [allProjects]);
+
+  const displayedProjects = useMemo(() => {
+    if (categoryFilter === 'all') return allProjects.slice(0, 6);
+    return allProjects.filter((p) => p.category === categoryFilter);
+  }, [allProjects, categoryFilter]);
+
+  const openManager = (tab: 'form' | 'list' | 'brand', projectToEdit?: PortfolioProject) => {
+    setEditingProject(projectToEdit || null);
+    setManagerTab(tab);
+    setManagerOpen(true);
+  };
+
   const customSections = (data?.sections || [])
     .filter((sec) => sec.visible)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -154,6 +187,40 @@ export function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14 lg:pt-16 lg:pb-18">
           {/* Centered Dominant Agency Headline Lockup */}
           <div className="max-w-4xl mx-auto text-center space-y-5">
+            {/* Brand / Face of Website Portrait Lockup (placed inside div:nth-of-type(1) to preserve CSS sibling indices) */}
+            <div className="inline-flex flex-wrap items-center justify-center gap-3.5 px-4 py-2.5 rounded-2xl bg-[#111318]/90 border border-[#D4AF37]/40 shadow-[0_0_28px_rgba(29,107,255,0.22)]">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-[#D4AF37]/75 shadow-[0_0_18px_rgba(29,107,255,0.45)] shrink-0 bg-[#0A0B0E]">
+                <ImageWithFallback
+                  src={brandFaceImage}
+                  alt={isAr ? 'م. محمود شعبان — وجه الموقع والهوية الهندسية' : 'Eng. Mahmoud Shaaban Portrait'}
+                  loading="eager"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="text-start space-y-1">
+                <div className="text-xs sm:text-sm font-extrabold text-white">
+                  {isAr ? 'م. محمود شعبان — مهندس الدعاية والإعلان الذكية' : 'Eng. Mahmoud Shaaban — Smart Advertising'}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openManager('brand')}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#0A0B0E] bg-[#D4AF37] hover:bg-[#F5D061] transition-colors cursor-pointer"
+                  >
+                    <Camera className="w-3 h-3" />
+                    <span>{isAr ? 'تغيير صورة وجه الموقع' : 'Change Face Photo'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/contact')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#60A5FA] bg-[#161920] hover:text-white border border-white/10 transition-colors cursor-pointer"
+                  >
+                    <span>{isAr ? 'تواصل مباشر' : 'Contact'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <p className="text-xs sm:text-sm font-semibold tracking-wide text-[var(--accent-gold)]">
               {isAr ? content?.heroKickerAr : content?.heroKickerEn}
             </p>
@@ -195,47 +262,49 @@ export function HomePage() {
           </div>
 
           {/* 3D Materials & Architectural Cladding Visual Triptych */}
-          <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {heroShowcaseCards.map((card, idx) => {
               const isCenter = idx === 1;
               return (
                 <div
                   key={card.slug}
-                  className={`group relative rounded-xl overflow-hidden border transition-all duration-300 bg-[#111318] ${
+                  className={`group card-3d-luxury relative rounded-xl overflow-hidden border bg-[#111318] flex flex-col ${
                     isCenter
-                      ? 'lg:col-span-6 min-h-[290px] sm:min-h-[340px] border-[var(--accent-gold)]/35 hover:border-[var(--accent-gold)]/80 hover:shadow-[0_0_32px_rgba(212,175,55,0.2)]'
-                      : 'lg:col-span-3 min-h-[240px] sm:min-h-[340px] border-white/10 hover:border-[var(--accent-blue)]/70 hover:shadow-[0_0_28px_rgba(29,107,255,0.22)]'
+                      ? 'lg:col-span-6 border-[var(--accent-gold)]/45'
+                      : 'lg:col-span-3 border-white/15'
                   }`}
                 >
-                  <SmartImage
-                    src={card.imageUrl}
-                    alt={isAr ? card.titleAr : card.titleEn}
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 lg:absolute lg:inset-0"
-                    fallbackTitle={isAr ? card.titleAr : card.titleEn}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0B0E]/95 via-[#0A0B0E]/70 to-transparent" />
-
                   <div
-                    className={`absolute top-0 inset-x-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity ${
+                    className={`h-[2px] w-full ${
                       isCenter ? 'bg-[var(--accent-gold)]' : 'bg-[var(--accent-blue)]'
                     }`}
                   />
+                  <div className="relative h-48 sm:h-56 w-full bg-[#0A0B0E] overflow-hidden">
+                    <ImageWithFallback
+                      src={card.imageUrl}
+                      alt={isAr ? card.titleAr : card.titleEn}
+                      className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                      fallbackTitle={isAr ? card.titleAr : card.titleEn}
+                    />
+                  </div>
 
-                  <div className="absolute bottom-4 inset-x-4 space-y-1.5">
-                    <p
-                      className={`text-xs font-semibold ${
-                        isCenter ? 'text-[var(--accent-gold)]' : 'text-[#60A5FA]'
-                      }`}
-                    >
-                      {isAr ? card.specAr : card.specEn}
-                    </p>
-                    <h2 className="text-base sm:text-lg font-bold text-white leading-snug">
-                      {isAr ? card.titleAr : card.titleEn}
-                    </h2>
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3 bg-[#111318]">
+                    <div className="space-y-1">
+                      <p
+                        className={`text-xs font-semibold ${
+                          isCenter ? 'text-[var(--accent-gold)]' : 'text-[#60A5FA]'
+                        }`}
+                      >
+                        {isAr ? card.specAr : card.specEn}
+                      </p>
+                      <h2 className="text-base sm:text-lg font-bold text-white leading-snug">
+                        {isAr ? card.titleAr : card.titleEn}
+                      </h2>
+                    </div>
                     <button
                       type="button"
                       onClick={() => navigate(`/quote?service=${encodeURIComponent(card.slug)}`)}
-                      className="inline-flex items-center gap-1.5 pt-1 text-xs font-semibold text-[#D4D7E0] hover:text-[var(--accent-gold)] transition-colors cursor-pointer"
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0A0B0E] bg-[var(--accent-gold)] hover:brightness-110 rounded-lg transition-all cursor-pointer w-fit"
                     >
                       <span>{isAr ? 'اطلب مواصفات مماثلة' : 'Quote this spec'}</span>
                       <ArrowIcon className="w-3.5 h-3.5" />
@@ -288,20 +357,30 @@ export function HomePage() {
 
           {/* Fabrication Metrics Strip */}
           <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-white/10 pt-8">
-            <div className="bg-[var(--bg-surface)] border border-white/10 hover:border-[var(--accent-gold)]/40 rounded-xl p-5 transition-colors">
-              <div className="text-2xl sm:text-3xl font-extrabold text-[var(--accent-gold)] font-mono-tabular">
-                {content?.yearsExperience || '12+'}
+            <div className="card-3d-luxury bg-[var(--bg-surface)] border border-white/10 rounded-xl p-4 sm:p-5">
+              <div className="text-xl sm:text-2xl font-extrabold text-[var(--accent-gold)] font-mono-tabular">
+                {isAr
+                  ? content?.yearsExperience || 'خبرة 6 سنوات'
+                  : '6 Years Experience'}
               </div>
-              <div className="text-sm text-[#B5BAC7] mt-1">
-                {isAr ? 'عاماً من الخبرة في تصنيع الواجهات' : 'Years in Signage Fabrication'}
+              <div className="text-xs sm:text-sm text-[#B5BAC7] mt-1">
+                {isAr ? 'سجل الأعمال والتصنيع الهندسي' : 'Signage Fabrication Experience'}
               </div>
             </div>
-            <div className="bg-[var(--bg-surface)] border border-white/10 hover:border-[var(--accent-blue)]/40 rounded-xl p-5 transition-colors">
-              <div className="text-2xl sm:text-3xl font-extrabold text-[#60A5FA] font-mono-tabular">
-                {content?.completedProjectsCount || '850+'}
+            <div
+              style={{ backgroundColor: '#252833' }}
+              className="card-3d-luxury border border-white/10 rounded-xl p-4 sm:p-5"
+            >
+              <div
+                style={{ color: '#38bfb6' }}
+                className="text-xl sm:text-2xl font-extrabold font-mono-tabular"
+              >
+                {isAr
+                  ? content?.completedProjectsCount || 'أعمالنا كثيرة'
+                  : 'Extensive Works'}
               </div>
-              <div className="text-sm text-[#B5BAC7] mt-1">
-                {isAr ? 'يافطة وواجهة تجارية منفذة' : 'Completed Commercial Projects'}
+              <div className="text-xs sm:text-sm text-[#B5BAC7] mt-1">
+                {isAr ? 'يفط وواجهات تجارية منفذة' : 'Completed Commercial Projects'}
               </div>
             </div>
             <div className="bg-[var(--bg-surface)] border border-white/10 hover:border-[var(--accent-gold)]/40 rounded-xl p-5 transition-colors">
@@ -375,55 +454,55 @@ export function HomePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {featuredServices.map((service, idx) => {
             const isWide = idx === 0 || idx === 3;
             return (
               <article
                 key={service.id}
-                className={`group bg-[var(--bg-surface)] border border-white/10 hover:border-[var(--accent-gold)]/50 hover:shadow-[0_0_24px_rgba(212,175,55,0.12)] rounded-xl overflow-hidden flex flex-col transition-all duration-300 ${
+                className={`group card-3d-luxury bg-[var(--bg-surface)] border border-white/10 rounded-xl overflow-hidden flex flex-col ${
                   isWide ? 'md:col-span-2' : 'md:col-span-1'
                 }`}
               >
-                <div className="relative h-56 overflow-hidden bg-[#0E1015]">
-                  <SmartImage
+                <div className="relative h-48 sm:h-52 overflow-hidden bg-[#0E1015] p-2">
+                  <ImageWithFallback
                     src={service.imageUrl}
                     alt={isAr ? service.titleAr : service.titleEn}
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                    className="w-full h-full object-cover rounded-lg opacity-90 group-hover:opacity-100 group-hover:scale-[1.03] drop-shadow-[0_0_14px_rgba(29,107,255,0.55)] group-hover:drop-shadow-[0_0_22px_rgba(212,175,55,0.8)] transition-all duration-500"
                     fallbackTitle={isAr ? service.titleAr : service.titleEn}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-surface)] via-transparent to-transparent" />
                 </div>
 
-                <div className="p-6 flex-1 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="text-xs text-[#A1A6B3] mb-2">
+                    <div className="text-xs text-[#A1A6B3] mb-1.5">
                       <span>{getCategoryLabel(service.category)}</span>
                       <span className="mx-2" aria-hidden="true">·</span>
                       <span className="text-[var(--accent-gold)]">
                         {isAr ? service.specsAr.split('·')[0] : service.specsEn.split('·')[0]}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-[#F4F4F6] mb-2 group-hover:text-white transition-colors">
+                    <h3 className="text-lg sm:text-xl font-bold text-[#F4F4F6] mb-1.5 group-hover:text-white transition-colors">
                       {isAr ? service.titleAr : service.titleEn}
                     </h3>
-                    <p className="text-sm text-[#B5BAC7] leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[#B5BAC7] leading-relaxed line-clamp-2">
                       {isAr ? service.descriptionAr : service.descriptionEn}
                     </p>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+                  <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => navigate(`/quote?service=${encodeURIComponent(service.slug)}`)}
-                      className="text-xs font-bold text-[#60A5FA] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-[#0A0B0E] bg-[var(--accent-gold)] hover:brightness-110 transition-all whitespace-nowrap shrink-0 cursor-pointer"
                     >
-                      {isAr ? 'اطلب تسعير هذه الخدمة' : 'Request Service Quote'}
+                      <span>{isAr ? 'اطلب مواصفات الخدمة' : 'Request Specs & Quote'}</span>
+                      <ArrowIcon className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => navigate('/services')}
-                      className="text-xs text-[#A1A6B3] hover:text-[var(--accent-gold)] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      className="text-xs font-semibold text-[#60A5FA] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                     >
                       {isAr ? 'المواصفات الفنية' : 'Specifications'}
                     </button>
@@ -435,79 +514,168 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Selected Portfolio Showcase */}
-      <section className="bg-[#0E1015] border-y border-white/10 py-16">
+      {/* Selected Portfolio Showcase + Category Divisions & Phone Upload Manager */}
+      <section className="bg-[#0E1015] border-y border-white/10 py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
             <div>
               <p className="text-xs font-semibold text-[var(--accent-gold)] mb-2">
-                {isAr ? '02. نماذج التصنيع والتصنيفات' : '02. Signage Showcase Categories'}
+                {isAr ? '02. معرض الأعمال والتصنيفات' : '02. Portfolio & Divisions'}
               </p>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F4F4F6]">
-                {isAr ? 'مشاريع ونماذج بأعلى معايير الدقة' : 'Craftsmanship Across All Signage Categories'}
+                {isAr ? 'معرض الأعمال الحقيقية بأعلى معايير الدقة' : 'Real Craftsmanship Across All Divisions'}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/portfolio')}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#60A5FA] hover:text-white whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <span>{isAr ? 'تصفح معرض الأعمال بالكامل' : 'View Full Portfolio'}</span>
-              <ArrowIcon className="w-4 h-4" />
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => openManager('form')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-[#0A0B0E] bg-gradient-to-r from-[#D4AF37] to-[#F5D061] hover:brightness-110 rounded-xl shadow-[0_0_18px_rgba(212,175,55,0.28)] transition-all whitespace-nowrap cursor-pointer"
+              >
+                <Camera className="w-4 h-4 shrink-0" />
+                <span>{isAr ? 'إضافة صورة من الهاتف' : 'Add Photo from Phone'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openManager('list')}
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-white bg-[#12141A] hover:bg-[#1A202D] border border-[#1D6BFF]/50 rounded-xl transition-colors whitespace-nowrap cursor-pointer"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-[#60A5FA]" />
+                <span>{isAr ? 'لوحة إدارة معرض الأعمال' : 'Manage Gallery'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/portfolio')}
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#60A5FA] hover:text-white whitespace-nowrap shrink-0 cursor-pointer px-2 py-2"
+              >
+                <span>{isAr ? `عرض الكل (${allProjects.length})` : `View All (${allProjects.length})`}</span>
+                <ArrowIcon className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {featuredProjects.map((project) => (
-              <div
-                key={project.id}
-                className="group bg-[var(--bg-surface)] border border-white/10 hover:border-[var(--accent-blue)]/60 hover:shadow-[0_0_24px_rgba(29,107,255,0.16)] rounded-xl overflow-hidden flex flex-col transition-all duration-300"
+          {/* Horizontal-Scrollable Category Bar */}
+          <div className="flex items-center sm:flex-wrap gap-1.5 p-1.5 bg-[#12141A] border border-white/10 rounded-xl mb-7 overflow-x-auto no-scrollbar">
+            {homeCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                  categoryFilter === cat
+                    ? 'bg-[#1D6BFF] text-white led-glow-blue'
+                    : 'text-[#B5BAC7] hover:text-white hover:bg-white/5'
+                }`}
               >
-                <div className="relative h-64 bg-[#0A0B0E] overflow-hidden">
-                  <SmartImage
-                    src={project.imageUrl}
-                    alt={isAr ? project.titleAr : project.titleEn}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                    fallbackTitle={isAr ? project.titleAr : project.titleEn}
-                  />
-                </div>
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="text-xs text-[#A1A6B3] mb-2 flex items-center gap-2">
-                      <span className="text-[var(--accent-gold)] font-medium">
-                        {getCategoryLabel(project.category)}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span>{isAr ? project.locationAr : project.locationEn}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="font-mono-tabular">{project.completionYear}</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-[#F4F4F6] mb-2">
-                      {isAr ? project.titleAr : project.titleEn}
-                    </h3>
-                    <p className="text-sm text-[#B5BAC7] line-clamp-2">
-                      {isAr ? project.descriptionAr : project.descriptionEn}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
-                    <span className="text-xs text-[#8C92A0] font-mono-tabular">
-                      {project.dimensions}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedProject(project)}
-                      aria-label={isAr ? `معاينة وتكبير ${project.titleAr}` : `Inspect ${project.titleEn}`}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#161920] hover:bg-[var(--accent-blue)] border border-white/10 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'تكبير والتفاصيل' : 'Inspect & Zoom'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+                {getCategoryLabel(cat)}
+              </button>
             ))}
           </div>
+
+          {displayedProjects.length === 0 ? (
+            <div className="bg-[#12141A] border border-white/10 rounded-xl p-8 text-center space-y-3">
+              <p className="text-sm text-[#B5BAC7]">
+                {isAr ? 'لا توجد أعمال مضافة في هذا التصنيف حالياً.' : 'No projects in this division yet.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => openManager('form')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-[#0A0B0E] bg-[#D4AF37] rounded-lg cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                <span>{isAr ? 'إضافة صورة من الهاتف لهذا القسم' : 'Add Phone Photo to Division'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {displayedProjects.map((project) => (
+                <article
+                  key={project.id}
+                  className="group card-3d-luxury bg-[var(--bg-surface)] border border-white/12 hover:border-[#1D6BFF]/75 rounded-xl overflow-hidden flex flex-col"
+                >
+                  <div
+                    onClick={() => setSelectedProject(project)}
+                    className="relative h-48 sm:h-52 bg-[#0A0B0E] overflow-hidden cursor-pointer"
+                  >
+                    <ImageWithFallback
+                      src={project.imageUrl}
+                      alt={isAr ? project.titleAr : project.titleEn}
+                      className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                      fallbackTitle={isAr ? project.titleAr : project.titleEn}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProject(project);
+                      }}
+                      aria-label={isAr ? `معاينة وتكبير ${project.titleAr}` : `Inspect ${project.titleEn}`}
+                      className="absolute bottom-3 end-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#0A0B0E]/85 hover:bg-[#1D6BFF] border border-white/25 rounded-lg backdrop-blur-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                      <span>{isAr ? 'تكبير الصورة' : 'Zoom View'}</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-[#A1A6B3] mb-1.5 flex flex-wrap items-center gap-2">
+                        <span className="text-[var(--accent-gold)] font-semibold">
+                          {getCategoryLabel(project.category)}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{isAr ? project.locationAr : project.locationEn}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="font-mono-tabular">{project.completionYear}</span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-[#F4F4F6] mb-1.5">
+                        {isAr ? project.titleAr : project.titleEn}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-[#B5BAC7] line-clamp-2">
+                        {isAr ? project.descriptionAr : project.descriptionEn}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs text-[#8C92A0] font-mono-tabular">
+                        {project.dimensions}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openManager('form', project)}
+                          aria-label={isAr ? `تعديل ${project.titleAr}` : `Edit ${project.titleEn}`}
+                          className="p-1.5 text-xs text-[#A1A6B3] hover:text-[#60A5FA] bg-[#161920] rounded-lg border border-white/10 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/quote?service=${encodeURIComponent(project.serviceSlug || project.category)}`)
+                          }
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-[#F5D061] bg-[#1D6BFF]/15 hover:bg-[#1D6BFF] hover:text-white border border-[#1D6BFF]/40 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>{isAr ? 'اطلب مواصفات' : 'Specs'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProject(project)}
+                          aria-label={isAr ? `تفاصيل ${project.titleAr}` : `Details ${project.titleEn}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-[#1D6BFF] hover:brightness-110 rounded-lg transition-all cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{isAr ? 'التفاصيل' : 'Inspect'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -655,8 +823,8 @@ export function HomePage() {
                   )}
                 </div>
                 {sec.imageUrl && (
-                  <div className="lg:col-span-5 h-64 lg:h-full min-h-[240px] bg-[#0A0B0E]">
-                    <SmartImage
+                  <div className="lg:col-span-5 h-56 lg:h-full min-h-[220px] bg-[#0A0B0E]">
+                    <ImageWithFallback
                       src={sec.imageUrl}
                       alt={secTitle}
                       className="w-full h-full object-cover"
@@ -710,6 +878,17 @@ export function HomePage() {
       </section>
 
       <ProjectLightbox project={selectedProject} onClose={() => setSelectedProject(null)} />
+
+      <PortfolioManagerModal
+        isOpen={managerOpen}
+        initialTab={managerTab}
+        projectToEdit={editingProject}
+        onClose={() => {
+          setManagerOpen(false);
+          setEditingProject(null);
+        }}
+        onSavedWork={(cat) => setCategoryFilter(cat || 'all')}
+      />
     </div>
   );
 }

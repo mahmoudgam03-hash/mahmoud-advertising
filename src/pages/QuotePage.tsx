@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Upload, CheckCircle2, MessageCircle, AlertCircle, X, FileImage, Ruler } from 'lucide-react';
+import { Upload, CheckCircle2, MessageCircle, AlertCircle, X, FileImage, Ruler, Camera } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ImageWithFallback } from '../components/ImageWithFallback';
+import {
+  PortfolioManagerModal,
+  DEFAULT_BRAND_FACE_IMAGE,
+} from '../components/PortfolioManagerModal';
 import { validateQuoteInput } from '../shared/validation';
 import { buildWhatsAppQuoteUrl } from '../shared/whatsapp';
 
@@ -33,6 +38,8 @@ export function QuotePage() {
   const isAr = lang === 'ar';
   const services = data?.services || [];
   const whatsappNumber = data?.contact?.whatsapp || '01155709023';
+  const brandFaceImage = data?.content?.logoUrl || DEFAULT_BRAND_FACE_IMAGE;
+  const [faceModalOpen, setFaceModalOpen] = useState(false);
 
   const preselectedSlug = queryParams.get('service') || '';
 
@@ -241,18 +248,47 @@ export function QuotePage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-      <div className="max-w-2xl mb-10">
-        <p className="text-xs font-semibold text-[#D4AF37] mb-2">
-          {isAr ? 'نظام طلبات عروض الأسعار' : 'Professional Fabrication Estimate'}
-        </p>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F4F4F6] mb-3">
-          {isAr ? 'اطلب عرض سعر لتصميم وتنفيذ واجهتك' : 'Request a Custom Fabrication Quote'}
-        </h1>
-        <p className="text-base text-[#B5BAC7] leading-relaxed">
-          {isAr
-            ? 'حدد المقاسات بالسنتيمتر والخامة واللون ونوع الإضاءة وأرفق صورة للمكان ليتم حفظ المقايسة وإرسالها مباشرة عبر واتساب.'
-            : 'Specify your dimensions in cm, preferred material, color, and lighting type with an optional site photo to save your request and send via WhatsApp.'}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold text-[#D4AF37] mb-2">
+            {isAr ? 'نظام طلبات عروض الأسعار' : 'Professional Fabrication Estimate'}
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F4F4F6] mb-3">
+            {isAr ? 'اطلب عرض سعر لتصميم وتنفيذ واجهتك' : 'Request a Custom Fabrication Quote'}
+          </h1>
+          <p className="text-base text-[#B5BAC7] leading-relaxed">
+            {isAr
+              ? 'حدد المقاسات بالسنتيمتر والخامة واللون ونوع الإضاءة وأرفق صورة للمكان ليتم حفظ المقايسة وإرسالها مباشرة عبر واتساب.'
+              : 'Specify your dimensions in cm, preferred material, color, and lighting type with an optional site photo to save your request and send via WhatsApp.'}
+          </p>
+        </div>
+
+        <div className="bg-[#12141A] border border-[#D4AF37]/40 rounded-xl p-4 flex items-center gap-3.5 shrink-0">
+          <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-[#D4AF37]/75 bg-[#0A0B0E] shrink-0">
+            <ImageWithFallback
+              src={brandFaceImage}
+              alt={isAr ? 'م. محمود شعبان — وجه الموقع' : 'Eng. Mahmoud Shaaban'}
+              loading="eager"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-sm font-extrabold text-white">
+              {isAr ? 'م. محمود شعبان للدعاية' : 'Eng. Mahmoud Shaaban'}
+            </div>
+            <div dir="ltr" className="text-xs font-mono-tabular text-[#60A5FA]">
+              {whatsappNumber}
+            </div>
+            <button
+              type="button"
+              onClick={() => setFaceModalOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#0A0B0E] bg-[#D4AF37] hover:bg-[#F5D061] transition-colors cursor-pointer"
+            >
+              <Camera className="w-3 h-3" />
+              <span>{isAr ? 'تغيير صورة وجه الموقع' : 'Change Face Photo'}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {submittedQuote ? (
@@ -648,6 +684,11 @@ export function QuotePage() {
           </div>
         </form>
       )}
+      <PortfolioManagerModal
+        isOpen={faceModalOpen}
+        initialTab="brand"
+        onClose={() => setFaceModalOpen(false)}
+      />
     </div>
   );
 }

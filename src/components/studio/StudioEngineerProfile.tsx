@@ -11,7 +11,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { SmartImage } from '../SmartImage';
+import { ImageWithFallback } from '../ImageWithFallback';
 import { buildWhatsAppDirectUrl } from '../../shared/whatsapp';
 
 interface EngineerPhotoItem {
@@ -176,7 +176,7 @@ export function StudioEngineerProfile() {
         {/* Personal Photo Spotlight */}
         <div className="lg:col-span-5 bg-[#050608] p-4 sm:p-5 flex flex-col gap-4 justify-center border-t lg:border-t-0 lg:border-s border-white/10">
           <div className="rounded-2xl overflow-hidden border border-[#D4AF37]/45 bg-black">
-            <SmartImage
+            <ImageWithFallback
               src={primaryPortrait}
               alt="الصورة الشخصية للمهندس محمود شعبان للدعاية والإعلان"
               className="w-full h-72 sm:h-80 object-cover object-top"
@@ -246,7 +246,7 @@ export function StudioEngineerProfile() {
               className="bg-[#06070B] border border-white/10 hover:border-[#D4AF37]/45 rounded-xl overflow-hidden transition-colors"
             >
               <div className="h-52 bg-black overflow-hidden">
-                <SmartImage
+                <ImageWithFallback
                   src={ph.imageUrl}
                   alt={ph.titleAr}
                   className="w-full h-full object-cover object-top"
@@ -291,7 +291,7 @@ export function StudioEngineerProfile() {
                 className="bg-[#06070B] border border-white/10 hover:border-[#D4AF37]/45 rounded-xl overflow-hidden transition-colors"
               >
                 <div className="h-40 bg-black overflow-hidden">
-                  <SmartImage
+                  <ImageWithFallback
                     src={p.imageUrl}
                     alt={p.titleAr}
                     className="w-full h-full object-cover"

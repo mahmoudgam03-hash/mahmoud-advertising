@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Menu, X, Globe, Eye, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ImageWithFallback } from './ImageWithFallback';
+import { DEFAULT_BRAND_FACE_IMAGE } from './PortfolioManagerModal';
 
 export function Navbar() {
   const { lang, toggleLang, route, navigate, data, isPreview, exitPreview, refreshPublicData } = useApp();
@@ -11,7 +13,7 @@ export function Navbar() {
   const companyName = isAr
     ? data?.content?.companyNameAr || 'محمود شعبان للدعاية والإعلان'
     : data?.content?.companyNameEn || 'Mahmoud Shaaban';
-  const logoUrl = data?.content?.logoUrl || '';
+  const logoUrl = data?.content?.logoUrl || DEFAULT_BRAND_FACE_IMAGE;
 
   const navItems = [
     { path: '/', labelAr: 'الرئيسية', labelEn: 'Home' },
@@ -92,24 +94,23 @@ export function Navbar() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
-        {/* Zone 1: Brand wordmark + optional CMS logo */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 sm:gap-8">
+        {/* Zone 1: Brand face/logo + wordmark */}
         <a
           href="/"
           onClick={(e) => {
             e.preventDefault();
             handleNav('/');
           }}
-          className="inline-flex items-center gap-2.5 text-base sm:text-lg font-extrabold tracking-tight text-[#F4F4F6] hover:text-[#D4AF37] transition-colors whitespace-nowrap shrink-0"
+          className="inline-flex items-center gap-2.5 text-sm sm:text-lg font-extrabold tracking-tight text-[#F4F4F6] hover:text-[#D4AF37] transition-colors whitespace-nowrap min-w-0"
         >
-          {logoUrl && (
-            <img
-              src={logoUrl}
-              alt={companyName}
-              className="h-8 w-8 rounded-md object-contain bg-white/5 border border-white/10"
-            />
-          )}
-          <span>{companyName}</span>
+          <ImageWithFallback
+            src={logoUrl}
+            alt={companyName}
+            loading="eager"
+            className="h-9 w-9 rounded-lg object-cover border border-[#D4AF37]/60 shrink-0 bg-[#0A0B0E]"
+          />
+          <span className="truncate max-w-[170px] sm:max-w-none">{companyName}</span>
         </a>
 
         {/* Zone 2: 5 concise single-line navigation links */}

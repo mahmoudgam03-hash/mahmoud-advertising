@@ -1056,6 +1056,11 @@ export interface LedCanvasWiringPlan {
   totalNodes: number;
   pitchXCm: number;
   pitchYCm: number;
+  totalStripMeters: number;
+  optimalInjectionCount: number;
+  maxVoltageDropVolts: number;
+  voltageDropStatus: 'safe' | 'warning';
+  injectionReasonAr: string;
   nodeCoords: LedCanvasNodeCoord[];
   psuUnits: PsuPlacement[];
   powerBranches: PowerBranch[];
@@ -1102,7 +1107,8 @@ export function suggestGridFromDimensions(
 }
 
 /**
- * Computes physical LED coordinates, optimal PSU mounting points, and feeder wire paths.
+ * Computes physical LED coordinates, optimal PSU mounting points, Smart Power Injection nodes
+ * (balancing both physical run meters and LED count to prevent voltage drop), and feeder wire paths.
  */
 export function computeLedCanvasWiringPlan(params: {
   widthCm: number;
@@ -1125,7 +1131,9 @@ export function computeLedCanvasWiringPlan(params: {
   const pitchYCm = Number((heightCm / safeRows).toFixed(1));
 
   const totalNodes = rawNodes.length;
-  const injectionEveryNodes = led.voltage === 5 ? 50 : led.voltage === 12 ? 100 : 150;
+  const maxNodesPerRun = led.voltage === 5 ? 50 : led.voltage === 12 ? 100 : 150;
+  const maxMetersPerRun = led.voltage === 5 ? 3.0 : led.voltage === 12 ? 5.5 : 9.0;
+  const resistanceOhmPerMeter = led.voltage === 5 ? 0.095 : led.voltage === 12 ? 0.085 : 0.075;
 
   const totalWatts = Number((totalNodes * led.wattsPerUnit).toFixed(1));
   const totalAmps = Number((totalWatts / led.voltage).toFixed(2));
@@ -1144,10 +1152,59 @@ export function computeLedCanvasWiringPlan(params: {
       yCm: Number(((n.yPercent / 100) * heightCm).toFixed(1)),
       xPercent: n.xPercent,
       yPercent: n.yPercent,
-      needsPowerInjection: n.needsPowerInjection,
+      needsPowerInjection: n.index === 1,
       assignedPsuIndex: psuIdx,
     };
   });
+
+  // Walk wiring sequence to compute real physical path length & dynamic Smart Power Injection points
+  let totalStripMetersRaw = 0;
+  let nodesSinceInjection = 0;
+  let metersSinceInjection = 0;
+  let maxDropVolts = 0;
+  const ampsPerNode = led.wattsPerUnit / led.voltage;
+
+  for (let i = 0; i < nodeCoords.length; i++) {
+    const curr = nodeCoords[i];
+    if (i > 0) {
+      const prev = nodeCoords[i - 1];
+      const segMeters = Math.hypot(curr.xCm - prev.xCm, curr.yCm - prev.yCm) / 100;
+      totalStripMetersRaw += segMeters;
+      metersSinceInjection += segMeters;
+      nodesSinceInjection += 1;
+
+      const switchedPsu = curr.assignedPsuIndex !== prev.assignedPsuIndex;
+      const reachedLengthLimit = metersSinceInjection >= maxMetersPerRun;
+      const reachedCountLimit = nodesSinceInjection >= maxNodesPerRun;
+
+      if (switchedPsu || reachedLengthLimit || reachedCountLimit) {
+        // Compute drop accumulated on the previous run before this injection point resets it
+        const runAmps = nodesSinceInjection * ampsPerNode;
+        const dropV = 2 * runAmps * (metersSinceInjection * 0.5) * resistanceOhmPerMeter;
+        if (dropV > maxDropVolts) maxDropVolts = dropV;
+
+        curr.needsPowerInjection = true;
+        nodesSinceInjection = 0;
+        metersSinceInjection = 0;
+      }
+    }
+  }
+
+  // Account for tail run after final injection point
+  if (nodesSinceInjection > 0) {
+    const tailAmps = nodesSinceInjection * ampsPerNode;
+    const tailDropV = 2 * tailAmps * (metersSinceInjection * 0.5) * resistanceOhmPerMeter;
+    if (tailDropV > maxDropVolts) maxDropVolts = tailDropV;
+  }
+
+  const totalStripMeters = Number(totalStripMetersRaw.toFixed(2));
+  const optimalInjectionCount = nodeCoords.filter((n) => n.needsPowerInjection).length;
+  const maxVoltageDropVolts = Number(maxDropVolts.toFixed(2));
+  const safeDropThreshold = led.voltage === 5 ? 0.45 : led.voltage === 12 ? 1.1 : 2.0;
+  const voltageDropStatus: 'safe' | 'warning' =
+    maxVoltageDropVolts > safeDropThreshold ? 'warning' : 'safe';
+
+  const injectionReasonAr = `توزيع ذكي لعدد ${optimalInjectionCount} نقطة تغذية على مسار فعلي ${totalStripMeters}م (${totalNodes} ليد · ${led.voltage}V) بحد أقصى ${maxMetersPerRun}م أو ${maxNodesPerRun} حبة لتثبيت الجهد ومنع اصفرار الأطراف.`;
 
   const edgeOffsetY = Math.max(12, Math.round(heightCm * 0.14));
   const edgeOffsetX = Math.max(14, Math.round(widthCm * 0.08));
@@ -1259,13 +1316,19 @@ export function computeLedCanvasWiringPlan(params: {
     totalNodes,
     pitchXCm,
     pitchYCm,
+    totalStripMeters,
+    optimalInjectionCount,
+    maxVoltageDropVolts,
+    voltageDropStatus,
+    injectionReasonAr,
     nodeCoords,
     psuUnits,
     powerBranches,
     totalWatts,
     totalAmps,
     totalFeederCableMeters,
-    injectionEveryNodes,
+    injectionEveryNodes: maxNodesPerRun,
   };
 }
+
 

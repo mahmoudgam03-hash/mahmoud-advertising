@@ -633,8 +633,16 @@ export function StudioLedSoftWorkbench({
         programId={programId}
         ledId={ledId}
         tick={tick}
+        speed={speed}
+        isPlaying={isPlaying}
         selectedNodeIdx={selectedNodeIdx}
         onSelectNode={setSelectedNodeIdx}
+        onChangeProgram={(nextProgramId) => {
+          onChangeConfig({ programId: nextProgramId });
+          setIsPlaying(true);
+        }}
+        onChangeSpeed={(nextSpeed) => onChangeConfig({ speed: nextSpeed })}
+        onTogglePlay={() => setIsPlaying((p) => !p)}
         onChangeBoardDimensions={onChangeBoardDimensions}
         onApplySuggestedGrid={(nextRows, nextCols) => {
           onChangeConfig({ rows: nextRows, cols: nextCols });

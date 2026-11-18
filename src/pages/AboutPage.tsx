@@ -1,6 +1,6 @@
 import { ShieldCheck, Ruler, Wrench, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { SmartImage } from '../components/SmartImage';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 
 export function AboutPage() {
   const { lang, navigate, data } = useApp();
@@ -55,8 +55,8 @@ export function AboutPage() {
           </p>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F4F4F6] leading-snug">
             {isAr
-              ? content?.aboutTitleAr || 'خبرة ميدانية وهندسية في تصنيع اليفط والواجهات منذ أكثر من 12 عاماً'
-              : content?.aboutTitleEn || 'Over 12 Years of Precision Signage & Architectural Facade Fabrication'}
+              ? content?.aboutTitleAr || 'خبرة 6 سنوات في تصنيع اليفط والواجهات الإعلانية بأعلى دقة'
+              : content?.aboutTitleEn || '6 Years of Precision Signage & Architectural Facade Fabrication'}
           </h1>
           <p className="text-base text-[#B5BAC7] leading-relaxed">
             {isAr
@@ -91,8 +91,8 @@ export function AboutPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-6 rounded-xl overflow-hidden border border-white/10 min-h-[320px] bg-[#12141A]">
-          <SmartImage
+        <div className="lg:col-span-6 card-3d-luxury rounded-xl overflow-hidden border border-white/10 min-h-[280px] sm:min-h-[320px] bg-[#12141A]">
+          <ImageWithFallback
             src="/src/assets/images/service_cladding_facade_1794750815768.jpg"
             alt={isAr ? 'تنفيذ واجهات كلادينج وحروف مضيئة' : 'Architectural ACP facade cladding execution'}
             className="w-full h-full object-cover"

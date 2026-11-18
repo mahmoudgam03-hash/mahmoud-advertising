@@ -137,7 +137,36 @@ test('suggestGridFromDimensions and computeLedCanvasWiringPlan map dimensions, P
   assert.equal(plan.psuUnits[0].yCm, 135);
   assert.ok(plan.powerBranches.length >= plan.psuUnits.length);
   assert.ok(plan.totalFeederCableMeters > 1);
+  assert.ok(plan.totalStripMeters > 10);
+  assert.ok(plan.optimalInjectionCount >= plan.psuUnits.length);
+  assert.ok(plan.maxVoltageDropVolts >= 0);
   assert.equal(plan.pitchXCm, Number((400 / 28).toFixed(1)));
   assert.equal(plan.pitchYCm, 12);
+
+  // Smart Power Injection: long 5V strip requires more injection points than identical 12V strip or shorter run
+  const long5vPlan = computeLedCanvasWiringPlan({
+    widthCm: 500,
+    heightCm: 150,
+    rows: 6,
+    cols: 20,
+    pattern: 'snake-h',
+    ledId: 'digital-strip-ws2812b',
+    mountSide: 'bottom',
+  });
+  const short5vPlan = computeLedCanvasWiringPlan({
+    widthCm: 120,
+    heightCm: 40,
+    rows: 6,
+    cols: 20,
+    pattern: 'snake-h',
+    ledId: 'digital-strip-ws2812b',
+    mountSide: 'bottom',
+  });
+  assert.ok(
+    long5vPlan.optimalInjectionCount > short5vPlan.optimalInjectionCount,
+    'Longer physical run on canvas should automatically trigger more optimal injection points'
+  );
+  assert.ok(long5vPlan.totalStripMeters > short5vPlan.totalStripMeters);
 });
+
 

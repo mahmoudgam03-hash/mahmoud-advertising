@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, ZoomIn, ZoomOut, RotateCcw, ArrowUpRight, ArrowUpLeft, Facebook, MessageCircle } from 'lucide-react';
 import type { PortfolioProject } from '../shared/types';
 import { useApp } from '../context/AppContext';
-import { SmartImage } from './SmartImage';
+import { ImageWithFallback } from './ImageWithFallback';
 import { buildSocialShareLinks, resolveShareUrl } from '../shared/social-share';
 
 interface ProjectLightboxProps {
@@ -43,7 +43,7 @@ export function ProjectLightbox({ project, onClose }: ProjectLightboxProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Zoomable Media Viewport */}
-        <div className="lg:col-span-7 bg-[#08090C] relative flex flex-col border-b lg:border-b-0 lg:border-e border-white/10 min-h-[300px] sm:min-h-[420px]">
+        <div className="lg:col-span-7 bg-[#08090C] relative flex flex-col border-b lg:border-b-0 lg:border-e border-white/10 min-h-[260px] sm:min-h-[400px]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0E1015]">
             <span className="text-xs font-mono-tabular text-[#A1A6B3]">
               {Math.round(zoom * 100)}%
@@ -83,7 +83,7 @@ export function ProjectLightbox({ project, onClose }: ProjectLightboxProps) {
               className="transition-all duration-200 ease-out"
               style={{ width: `${Math.round(zoom * 100)}%`, maxWidth: 'none' }}
             >
-              <SmartImage
+              <ImageWithFallback
                 src={project.imageUrl}
                 alt={isAr ? project.titleAr : project.titleEn}
                 className="w-full h-auto max-h-none object-contain rounded-lg mx-auto"

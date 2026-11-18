@@ -8,8 +8,11 @@ import {
   Layers,
   Maximize2,
   Move,
+  Pause,
+  Play,
   RotateCcw,
   Ruler,
+  Sparkles,
   Wand2,
   Zap,
   ZoomIn,
@@ -37,13 +40,25 @@ interface StudioLedCanvasDiagramProps {
   programId: SoftProgramId;
   ledId: LedCategoryId;
   tick: number;
+  speed?: number;
+  isPlaying?: boolean;
   selectedNodeIdx: number;
   onSelectNode: (index: number) => void;
+  onChangeProgram?: (id: SoftProgramId) => void;
+  onChangeSpeed?: (speed: number) => void;
+  onTogglePlay?: () => void;
   onChangeBoardDimensions?: (widthCm: number, heightCm: number) => void;
   onApplySuggestedGrid?: (rows: number, cols: number) => void;
 }
 
 const PSU_COLORS = ['#F5D061', '#38BDF8', '#A78BFA', '#34D399', '#FB7185', '#FBBF24'];
+
+const QUICK_LIGHTING_MODES: Array<{ id: SoftProgramId; labelAr: string }> = [
+  { id: 'steady-warm-gold', labelAr: 'ثابت' },
+  { id: 'royal-sparkle', labelAr: 'وميض' },
+  { id: 'heartbeat-gold', labelAr: 'نبض' },
+  { id: 'gold-wave', labelAr: 'موجة ذهبية' },
+];
 
 const MOUNT_SIDE_OPTIONS: Array<{ id: PsuMountSide; labelAr: string }> = [
   { id: 'bottom', labelAr: 'أسفل اللوحة' },
@@ -64,8 +79,13 @@ export function StudioLedCanvasDiagram({
   programId,
   ledId,
   tick,
+  speed = 6,
+  isPlaying = true,
   selectedNodeIdx,
   onSelectNode,
+  onChangeProgram,
+  onChangeSpeed,
+  onTogglePlay,
   onChangeBoardDimensions,
   onApplySuggestedGrid,
 }: StudioLedCanvasDiagramProps) {
@@ -809,6 +829,61 @@ export function StudioLedCanvasDiagram({
         </div>
       </div>
 
+      {/* Quick Canvas Lighting Mode Bar (Steady / Flash / Pulse + Speed) */}
+      <div className="print:hidden bg-[#07080C] border border-[#D4AF37]/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#F5D061]">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>وضع إضاءة الكانفاس:</span>
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {QUICK_LIGHTING_MODES.map((mode) => {
+              const active = programId === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => onChangeProgram?.(mode.id)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                    active
+                      ? 'bg-[#D4AF37] text-[#050608] border-[#F5D061]'
+                      : 'bg-[#040508] text-[#D4D7E0] border-white/15 hover:border-[#D4AF37]/50'
+                  }`}
+                >
+                  {mode.labelAr}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {onChangeSpeed && (
+            <label className="flex items-center gap-2 text-[11px] text-[#B5BAC7]">
+              <span>السرعة ({speed}):</span>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={speed}
+                onChange={(e) => onChangeSpeed(Number(e.target.value))}
+                className="w-24 accent-[#D4AF37] cursor-pointer"
+              />
+            </label>
+          )}
+          {onTogglePlay && (
+            <button
+              type="button"
+              onClick={onTogglePlay}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D1017] border border-[#D4AF37]/45 text-[11px] font-bold text-[#F5D061] cursor-pointer"
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              <span>{isPlaying ? 'إيقاف مؤقت' : 'تشغيل المحاكاة'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Layer Toggles & Zoom Bar */}
       <div className="print:hidden flex flex-wrap items-center justify-between gap-2 bg-[#07080C] border border-white/10 rounded-xl p-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -1034,6 +1109,10 @@ export function StudioLedCanvasDiagram({
               </strong>
             </div>
             <div className="flex justify-between">
+              <span>الطول الفعلي لمسار الشريط والليد:</span>
+              <strong className="text-white font-mono-tabular">{plan.totalStripMeters} متر</strong>
+            </div>
+            <div className="flex justify-between">
               <span>إجمالي طول كابلات التغذية (+V / -GND):</span>
               <strong className="text-rose-300 font-mono-tabular">
                 {plan.totalFeederCableMeters} متر (مزدوج)
@@ -1047,6 +1126,54 @@ export function StudioLedCanvasDiagram({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Smart Power Injection Algorithm Telemetry Card */}
+      <div className="bg-gradient-to-br from-[#0B101B] via-[#07080C] to-[#110D06] border border-[#1D6BFF]/45 rounded-xl p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[#F5D061]">
+            <Zap className="w-4 h-4 text-[#60A5FA]" />
+            <span>خوارزمية تغذية الطاقة الذكية (Smart Power Injection) لمنع هبوط الجهد</span>
+          </div>
+          <span
+            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-lg border ${
+              plan.voltageDropStatus === 'safe'
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+            }`}
+          >
+            {plan.voltageDropStatus === 'safe' ? 'جهد آمن ومتوازن' : 'يحتاج تقريب مسافة الباور'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+          <div className="bg-[#040508] border border-white/10 rounded-lg p-2.5">
+            <div className="text-[11px] text-[#9EA4B3]">طول الشريط / المسار الفعلي</div>
+            <div className="text-sm font-extrabold text-white font-mono-tabular mt-0.5">
+              {plan.totalStripMeters} متر
+            </div>
+          </div>
+          <div className="bg-[#040508] border border-white/10 rounded-lg p-2.5">
+            <div className="text-[11px] text-[#9EA4B3]">نقاط تغذية الطاقة المثلى</div>
+            <div className="text-sm font-extrabold text-rose-300 font-mono-tabular mt-0.5">
+              {plan.optimalInjectionCount} نقطة
+            </div>
+          </div>
+          <div className="bg-[#040508] border border-white/10 rounded-lg p-2.5">
+            <div className="text-[11px] text-[#9EA4B3]">أقصى هبوط جهد متوقع</div>
+            <div className="text-sm font-extrabold text-[#38bfb6] font-mono-tabular mt-0.5">
+              {plan.maxVoltageDropVolts} V
+            </div>
+          </div>
+          <div className="bg-[#040508] border border-white/10 rounded-lg p-2.5">
+            <div className="text-[11px] text-[#9EA4B3]">عدد الليدات / الجهد</div>
+            <div className="text-sm font-extrabold text-[#F5D061] font-mono-tabular mt-0.5">
+              {plan.totalNodes} ليد · {activeLed.voltage}V
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-[#B5BAC7] leading-relaxed">{plan.injectionReasonAr}</p>
       </div>
     </section>
   );

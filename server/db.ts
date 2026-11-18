@@ -269,6 +269,7 @@ export function initializeDatabase(): void {
   seedSeoLegalIfEmpty();
   seedQuotesIfEmpty();
   ensureInitialPublishedSnapshot();
+  migrateExperienceAndBeforeAfter();
 }
 
 function addColumnIfMissing(table: string, col: string, def: string): boolean {
@@ -780,8 +781,8 @@ function seedContentIfEmpty(): void {
     ctaBannerBtnTextAr: 'اطلب عرض سعر الآن',
     ctaBannerBtnTextEn: 'Request a Quote Now',
     ctaBannerBtnUrl: '/quote',
-    aboutTitleAr: 'خبرة ميدانية وهندسية في تصنيع اليفط والواجهات منذ أكثر من 12 عاماً',
-    aboutTitleEn: 'Over 12 Years of Precision Signage & Architectural Facade Fabrication',
+    aboutTitleAr: 'خبرة 6 سنوات في تصنيع اليفط والواجهات الإعلانية بأعلى دقة',
+    aboutTitleEn: '6 Years of Precision Signage & Architectural Facade Fabrication',
     aboutStoryAr:
       'تأسست شركة محمود شعبان للدعاية والإعلان لتقديم حلول تصنيع متكاملة تجمع بين دقة الورش الهندسية الحديثة وجماليات التصميم التجاري الفاخر. نعتمد على خامات معتمدة، قص ليزر وCNC فائق الدقة، وأنظمة إضاءة LED موفرة وعالية العمر الافتراضي.',
     aboutStoryEn:
@@ -790,14 +791,108 @@ function seedContentIfEmpty(): void {
       'نلتزم بضمان فعلي على الإضاءة والخامات، مع تسليم هندسي دقيق ومطابق للمعايير الكهربائية والأمان الإنشائي.',
     qualityPromiseEn:
       'Every project is backed by a written warranty covering structural mounting, metal finishes, and IP67-rated LED electrical systems.',
-    yearsExperience: '12+',
-    completedProjectsCount: '850+',
+    yearsExperience: 'خبرة 6 سنوات',
+    completedProjectsCount: 'أعمالنا كثيرة',
     warrantyYears: '5',
   };
 
   const insert = db.prepare('INSERT OR IGNORE INTO site_content (key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(defaults)) {
     insert.run(k, v);
+  }
+}
+
+function migrateExperienceAndBeforeAfter(): void {
+  // 1. Update legacy 12+ / 850+ values in site_content draft
+  db.prepare(
+    "UPDATE site_content SET value = 'خبرة 6 سنوات' WHERE key = 'yearsExperience' AND (value = '12+' OR value = '12' OR value LIKE '%12%')"
+  ).run();
+  db.prepare(
+    "UPDATE site_content SET value = 'أعمالنا كثيرة' WHERE key = 'completedProjectsCount' AND (value = '850+' OR value = '850')"
+  ).run();
+  db.prepare(
+    "UPDATE site_content SET value = 'خبرة 6 سنوات في تصنيع اليفط والواجهات الإعلانية بأعلى دقة' WHERE key = 'aboutTitleAr' AND value LIKE '%12 عاماً%'"
+  ).run();
+  db.prepare(
+    "UPDATE site_content SET value = '6 Years of Precision Signage & Architectural Facade Fabrication' WHERE key = 'aboutTitleEn' AND value LIKE '%12 Years%'"
+  ).run();
+
+  // 2. Ensure at least one before-after portfolio sample exists
+  const hasBeforeAfter = (
+    db.prepare("SELECT COUNT(*) as c FROM projects WHERE category = 'before-after'").get() as { c: number }
+  ).c;
+  if (hasBeforeAfter === 0) {
+    db.prepare(`
+      INSERT INTO projects (
+        title_ar, title_en, category, service_slug, client_name,
+        location_ar, location_en, dimensions, lighting_ar, lighting_en,
+        materials_ar, materials_en, description_ar, description_en,
+        completion_year, image_url, featured, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'تصميم وتنفيذ واجهة محل تجاري — قبل وبعد التنفيذ',
+      'Commercial Storefront — Before & After Design Execution',
+      'before-after',
+      'facade-installation',
+      'نموذج قبل وبعد التنفيذ',
+      'بني مزار، المنيا',
+      'Beni Mazar, Minya',
+      '800 × 320 سم',
+      'تحول كامل بإضاءة ليد بروفايل وحروف أكريليك سمارت',
+      'Full Facade Upgrade with LED Profile & Smart Acrylic Letters',
+      'كلادينج 4 مم فحمي + حروف بارزة مضيئة مطابقة لتصور الـ 3D',
+      '4mm Charcoal ACP Cladding + 3D Letters matching 3D design',
+      'مقارنة واقعية بين مرحلة المعاينة والتصميم ثلاثي الأبعاد وبين الشكل النهائي للواجهة بعد التنفيذ والتركيب.',
+      'Real-world execution matching initial 3D architectural design mockups with final storefront cladding and illuminated letters.',
+      '2026',
+      '/src/assets/images/service_cladding_facade_1794750815768.jpg',
+      1,
+      9
+    );
+  }
+
+  // 3. Synchronize published snapshot if it still holds old counters or lacks before-after project
+  const pubRow = db
+    .prepare('SELECT payload_json FROM cms_snapshots WHERE key = ?')
+    .get('published') as { payload_json: string } | undefined;
+  if (pubRow) {
+    try {
+      const pub = JSON.parse(pubRow.payload_json) as CmsSnapshotPayload;
+      let changed = false;
+      if (pub.content) {
+        if (!pub.content.yearsExperience || pub.content.yearsExperience.includes('12')) {
+          pub.content.yearsExperience = 'خبرة 6 سنوات';
+          changed = true;
+        }
+        if (!pub.content.completedProjectsCount || pub.content.completedProjectsCount.includes('850')) {
+          pub.content.completedProjectsCount = 'أعمالنا كثيرة';
+          changed = true;
+        }
+        if (pub.content.aboutTitleAr?.includes('12 عاماً')) {
+          pub.content.aboutTitleAr = 'خبرة 6 سنوات في تصنيع اليفط والواجهات الإعلانية بأعلى دقة';
+          changed = true;
+        }
+        if (pub.content.aboutTitleEn?.includes('12 Years')) {
+          pub.content.aboutTitleEn = '6 Years of Precision Signage & Architectural Facade Fabrication';
+          changed = true;
+        }
+      }
+      if (Array.isArray(pub.projects) && !pub.projects.some((p) => p.category === 'before-after')) {
+        const latestBeforeAfter = getProjects().find((p) => p.category === 'before-after');
+        if (latestBeforeAfter) {
+          pub.projects.push(latestBeforeAfter);
+          changed = true;
+        }
+      }
+      if (changed) {
+        db.prepare('UPDATE cms_snapshots SET payload_json = ? WHERE key = ?').run(
+          JSON.stringify(pub),
+          'published'
+        );
+      }
+    } catch {
+      // Ignore malformed JSON
+    }
   }
 }
 

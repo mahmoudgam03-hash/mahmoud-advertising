@@ -37,7 +37,7 @@ import type {
   SiteContent,
   ThemeSettings,
 } from '../shared/types';
-import { SmartImage } from '../components/SmartImage';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { CmsHomepageTab } from '../components/admin/CmsHomepageTab';
 import { CmsSettingsTab } from '../components/admin/CmsSettingsTab';
 import { CmsRevisionsTab } from '../components/admin/CmsRevisionsTab';
@@ -419,26 +419,60 @@ export function AdminPage() {
   };
 
   // Project CRUD & Reorder
-  const saveProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitProject = async (publishNow: boolean) => {
     setErrorMessage(null);
+    const safeTitleAr = projectForm.titleAr.trim();
+    const safeTitleEn = projectForm.titleEn.trim() || safeTitleAr;
+    const safeDescAr = projectForm.descriptionAr.trim();
+    const safeDescEn = projectForm.descriptionEn.trim() || safeDescAr;
+    const payload = {
+      ...projectForm,
+      titleAr: safeTitleAr,
+      titleEn: safeTitleEn,
+      descriptionAr: safeDescAr,
+      descriptionEn: safeDescEn,
+    };
+
     const url = editingProjectId ? `/api/admin/projects/${editingProjectId}` : '/api/admin/projects';
     const method = editingProjectId ? 'PUT' : 'POST';
     const res = await fetch(url, {
       method,
       headers: authHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
-      body: JSON.stringify(projectForm),
+      body: JSON.stringify(payload),
     });
     const json = (await res.json()) as { bundle?: AdminCmsBundle; error?: string };
     if (!res.ok) {
       setErrorMessage(json.error || 'Failed to save project');
       return;
     }
-    if (json.bundle) syncBundleToForms(json.bundle);
+
+    if (publishNow) {
+      const pubRes = await fetch('/api/admin/cms/publish', {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+      });
+      const pubJson = (await pubRes.json()) as { bundle?: AdminCmsBundle; error?: string };
+      if (!pubRes.ok || !pubJson.bundle) {
+        setErrorMessage(pubJson.error || 'Saved draft, but publish failed');
+        return;
+      }
+      syncBundleToForms(pubJson.bundle);
+      await refreshPublicData(false);
+      notify(isAr ? 'تم حفظ العمل ونشره مباشرة في معرض الموقع' : 'Project saved and published live');
+    } else {
+      if (json.bundle) syncBundleToForms(json.bundle);
+      notify(isAr ? 'تم حفظ المشروع في المسودة (اضغط نشر لتحديث المعرض)' : 'Project saved in draft');
+    }
+
     setEditingProjectId(null);
     setProjectForm(EMPTY_PROJECT_FORM);
-    notify(isAr ? 'تم حفظ المشروع في المسودة (اضغط نشر لتحديث المعرض)' : 'Project saved in draft');
+  };
+
+  const saveProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitProject(false);
   };
 
   const editProject = (p: PortfolioProject) => {
@@ -1028,6 +1062,7 @@ export function AdminPage() {
                               <img
                                 src={q.imagePath}
                                 alt={q.customerName}
+                                loading="lazy"
                                 className="w-12 h-12 rounded object-cover border border-white/15"
                               />
                               <span>{isAr ? 'معاينة الصورة المرفقة' : 'View Attached Photo'}</span>
@@ -1345,7 +1380,7 @@ export function AdminPage() {
                     className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-lg bg-[#0A0B0E] border border-white/10"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <SmartImage
+                      <ImageWithFallback
                         src={s.imageUrl}
                         alt={s.titleAr}
                         className="w-12 h-12 rounded-lg object-cover shrink-0"
@@ -1477,6 +1512,7 @@ export function AdminPage() {
                     <option value="mirror-signs">{getCategoryLabel('mirror-signs')}</option>
                     <option value="led-lighting">{getCategoryLabel('led-lighting')}</option>
                     <option value="commercial-storefronts">{getCategoryLabel('commercial-storefronts')}</option>
+                    <option value="before-after">{getCategoryLabel('before-after')}</option>
                   </select>
                   <input
                     type="text"
@@ -1492,18 +1528,23 @@ export function AdminPage() {
                     onChange={(e) => setProjectForm({ ...projectForm, dimensions: e.target.value })}
                     className="px-3.5 py-2.5 rounded-lg bg-[#0A0B0E] border border-white/15 text-sm text-white"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <ImageWithFallback
+                      src={projectForm.imageUrl}
+                      alt={projectForm.titleAr || 'Preview'}
+                      className="w-10 h-10 rounded-lg object-cover border border-white/15 shrink-0"
+                    />
                     <input
                       type="text"
                       dir="ltr"
                       placeholder="Image URL"
                       value={projectForm.imageUrl}
                       onChange={(e) => setProjectForm({ ...projectForm, imageUrl: e.target.value })}
-                      className="flex-1 px-3.5 py-2.5 rounded-lg bg-[#0A0B0E] border border-white/15 text-xs text-white font-mono-tabular"
+                      className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-[#0A0B0E] border border-white/15 text-xs text-white font-mono-tabular"
                     />
-                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#161920] hover:bg-[#1E222B] border border-white/15 text-xs text-white cursor-pointer shrink-0">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-[#161920] hover:bg-[#1E222B] border border-[#D4AF37]/40 text-xs font-semibold text-[#F5D061] cursor-pointer shrink-0">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'رفع صورة' : 'Upload'}</span>
+                      <span>{isAr ? 'إضافة صورة من الهاتف' : 'Upload Photo'}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1528,25 +1569,38 @@ export function AdminPage() {
                   <textarea
                     rows={2}
                     dir="ltr"
-                    placeholder={isAr ? 'وصف المشروع بالإنجليزية' : 'Description (English)'}
+                    placeholder={isAr ? 'وصف المشروع بالإنجليزية (اختياري)' : 'Description (English)'}
                     value={projectForm.descriptionEn}
                     onChange={(e) => setProjectForm({ ...projectForm, descriptionEn: e.target.value })}
                     className="px-3.5 py-2.5 rounded-lg bg-[#0A0B0E] border border-white/15 text-sm text-white"
                   />
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <button
-                    type="submit"
-                    className="px-5 py-2.5 text-sm font-bold text-[#0A0B0E] bg-[#D4AF37] hover:bg-[#E2BF4E] rounded-lg cursor-pointer"
+                    type="button"
+                    onClick={() => void submitProject(true)}
+                    className="px-5 py-2.5 text-sm font-extrabold text-[#0A0B0E] bg-[#D4AF37] hover:bg-[#E2BF4E] rounded-lg cursor-pointer"
                   >
                     {editingProjectId
                       ? isAr
-                        ? 'حفظ تعديل المشروع'
-                        : 'Update Project'
+                        ? 'حفظ التعديل ونشره فوراً'
+                        : 'Update & Publish Live'
                       : isAr
-                        ? 'إضافة المشروع للمسودة'
-                        : 'Save Project to Draft'}
+                        ? 'حفظ ونشر فوراً للمعرض'
+                        : 'Save & Publish Live'}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 text-sm font-semibold text-white bg-[#161920] hover:bg-[#1E222B] border border-white/15 rounded-lg cursor-pointer"
+                  >
+                    {editingProjectId
+                      ? isAr
+                        ? 'حفظ التعديل في المسودة'
+                        : 'Update Draft'
+                      : isAr
+                        ? 'حفظ في المسودة فقط'
+                        : 'Save to Draft Only'}
                   </button>
                   {editingProjectId && (
                     <button
@@ -1573,7 +1627,7 @@ export function AdminPage() {
                     className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-lg bg-[#0A0B0E] border border-white/10"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <SmartImage
+                      <ImageWithFallback
                         src={p.imageUrl}
                         alt={p.titleAr}
                         className="w-12 h-12 rounded-lg object-cover shrink-0"

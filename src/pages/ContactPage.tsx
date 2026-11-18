@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { Phone, MessageCircle, Facebook, MapPin, Mail, Clock, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Phone, MessageCircle, Facebook, MapPin, Mail, Clock, CheckCircle2, AlertCircle, ExternalLink, Camera } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ImageWithFallback } from '../components/ImageWithFallback';
+import {
+  PortfolioManagerModal,
+  DEFAULT_BRAND_FACE_IMAGE,
+} from '../components/PortfolioManagerModal';
 import { validateContactInput } from '../shared/validation';
 import { buildWhatsAppDirectUrl } from '../shared/whatsapp';
 
@@ -8,6 +13,8 @@ export function ContactPage() {
   const { lang, data } = useApp();
   const isAr = lang === 'ar';
   const contact = data?.contact;
+  const brandFaceImage = data?.content?.logoUrl || DEFAULT_BRAND_FACE_IMAGE;
+  const [faceModalOpen, setFaceModalOpen] = useState(false);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -77,8 +84,37 @@ export function ContactPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Contact Details & Map Card */}
+        {/* Brand Face Card, Contact Details & Map Card */}
         <div className="lg:col-span-5 space-y-6">
+          <div className="bg-gradient-to-br from-[#131722] via-[#12141A] to-[#17140E] border border-[#D4AF37]/40 rounded-xl p-5 flex items-center gap-4 shadow-[0_0_24px_rgba(29,107,255,0.16)]">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#D4AF37]/75 bg-[#0A0B0E] shrink-0">
+              <ImageWithFallback
+                src={brandFaceImage}
+                alt={isAr ? 'م. محمود شعبان — وجه الموقع للدعاية والإعلان' : 'Eng. Mahmoud Shaaban'}
+                loading="eager"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <div>
+                <h2 className="text-base font-extrabold text-white truncate">
+                  {isAr ? 'م. محمود شعبان للدعاية والإعلان' : 'Eng. Mahmoud Shaaban Advertising'}
+                </h2>
+                <p className="text-xs text-[#B5BAC7]">
+                  {isAr ? 'المنيا – بني مزار · حروف بارزة وكلادينج' : 'Minya - Beni Mazar · Signage & Cladding'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFaceModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0A0B0E] bg-[#D4AF37] hover:bg-[#F5D061] transition-colors cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>{isAr ? 'تغيير صورة وجه الموقع' : 'Change Site Face Photo'}</span>
+              </button>
+            </div>
+          </div>
+
           <div className="bg-[#12141A] border border-white/10 rounded-xl p-6 space-y-5">
             <h2 className="text-lg font-bold text-[#F4F4F6]">
               {isAr ? 'بيانات الاتصال الرسمية' : 'Official Contact Channels'}
@@ -308,6 +344,12 @@ export function ContactPage() {
           </form>
         </div>
       </div>
+      <PortfolioManagerModal
+        isOpen={faceModalOpen}
+        initialTab="brand"
+        onClose={() => setFaceModalOpen(false)}
+      />
     </div>
   );
 }
+

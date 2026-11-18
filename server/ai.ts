@@ -86,6 +86,28 @@ function mapGeminiError(err: unknown): AiServiceError {
   return new AiServiceError(502, `خطأ من خدمة الذكاء الاصطناعي: ${msg}`);
 }
 
+function cleanJsonText(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+async function runWithTransientRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof AiServiceError && (err.status === 400 || err.status === 403 || err.status === 429)) {
+      throw err;
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('API_KEY_INVALID') || msg.includes('PERMISSION_DENIED') || msg.includes('403')) {
+      throw err;
+    }
+    await new Promise((r) => setTimeout(r, 700));
+    return await fn();
+  }
+}
+
 export async function analyzeSignageWithGemini(
   input: SignageAiAdvisorInput
 ): Promise<SignageAiAdvisorResult> {
@@ -121,14 +143,15 @@ export async function analyzeSignageWithGemini(
   parts.push({ text: promptText });
 
   try {
-    const response = await Promise.race([
-      ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
-        contents: { parts },
-        config: {
-          systemInstruction:
-            'أنت مستشار هندسي مصري خبير في صناعة الدعاية والإعلان والليد والكلادينج. أجب بصيغة JSON عربية واضحة وبأسلوب عملي مباشر.',
-          responseMimeType: 'application/json',
+    const response = await runWithTransientRetry(() =>
+      Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-4-hydrogen',
+          contents: { parts },
+          config: {
+            systemInstruction:
+              'أنت مستشار هندسي مصري خبير في صناعة الدعاية والإعلان والليد والكلادينج. أجب بصيغة JSON عربية واضحة وبأسلوب عملي مباشر دون أي اختلاق.',
+            responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -207,21 +230,22 @@ export async function analyzeSignageWithGemini(
           },
         },
       }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new AiServiceError(
-                504,
-                'انتهت مهلة الاتصال بخدمة Gemini AI (30 ثانية). يرجى التحقق من الاتصال ومفتاح GEMINI_API_KEY والمحاولة مجدداً.'
-              )
-            ),
-          30000
-        )
-      ),
-    ]);
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new AiServiceError(
+                  504,
+                  'انتهت مهلة الاتصال بخدمة Gemini AI (30 ثانية). يرجى التحقق من الاتصال ومفتاح GEMINI_API_KEY والمحاولة مجدداً.'
+                )
+              ),
+            30000
+          )
+        ),
+      ])
+    );
 
-    const rawText = (response.text ?? '').trim();
+    const rawText = cleanJsonText(response.text ?? '');
     if (!rawText) {
       throw new AiServiceError(502, 'لم يُرجع نموذج الذكاء الاصطناعي استجابة صالحة.');
     }
@@ -306,28 +330,30 @@ export async function askSignageAssistantWithGemini(
   });
 
   try {
-    const response = await Promise.race([
-      ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
-        contents: { parts },
-        config: {
-          systemInstruction:
-            'أنت المساعد الذكي في منصة "مهندس محمود شعبان للدعاية والإعلان" (بني مزار - المنيا). تتحدث باللغة العربية المصرية البسيطة والمهذبة والعملية جداً كأنك مهندس ورشة يشرح لصنايعي أو عميل. تشرح تصنيع الحروف، تركيب الليد، توصيلات الكهرباء والترانس، برمجة السوفت، اختيار الخامات، واكتشاف الأخطاء الحسابية وتصحيحها خطوة بخطوة. لو مفيش صورة واضحة للمسافات، وضّح افتراضاتك بصراحة.',
-        },
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new AiServiceError(
-                504,
-                'انتهت مهلة الرد من المساعد الذكي (30 ثانية). حاول مرة أخرى بعد لحظات.'
-              )
-            ),
-          30000
-        )
-      ),
-    ]);
+    const response = await runWithTransientRetry(() =>
+      Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-4-hydrogen',
+          contents: { parts },
+          config: {
+            systemInstruction:
+              'أنت المساعد الذكي في منصة "مهندس محمود شعبان للدعاية والإعلان" (بني مزار - المنيا). تتحدث باللغة العربية المصرية البسيطة والمهذبة والعملية جداً كأنك مهندس ورشة يشرح لصنايعي أو عميل. تشرح تصنيع الحروف، تركيب الليد، توصيلات الكهرباء والترانس، برمجة السوفت، اختيار الخامات، واكتشاف الأخطاء الحسابية وتصحيحها خطوة بخطوة. لو مفيش صورة واضحة للمسافات، وضّح افتراضاتك بصراحة.',
+          },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new AiServiceError(
+                  504,
+                  'انتهت مهلة الرد من المساعد الذكي (30 ثانية). حاول مرة أخرى بعد لحظات.'
+                )
+              ),
+            30000
+          )
+        ),
+      ])
+    );
 
     const reply = (response.text ?? '').trim();
     if (!reply) {

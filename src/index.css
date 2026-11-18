@@ -15,10 +15,12 @@
     scroll-behavior: smooth;
     background-color: var(--bg-primary);
     color: #f4f4f6;
+    overflow-x: hidden;
   }
 
   body {
     background-color: var(--bg-primary);
+    overflow-x: hidden;
   }
 
   html[lang="ar"] body {
@@ -145,5 +147,37 @@ html[dir="rtl"] .msa-marquee-track {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* 3D Elevated Cards with Electric Blue & Gold Lighting */
+.card-3d-luxury {
+  position: relative;
+  transform: perspective(1000px) translateZ(0);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.35s ease;
+  box-shadow:
+    0 12px 28px -12px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.card-3d-luxury:hover,
+.card-3d-luxury:active {
+  transform: perspective(1000px) translateY(-4px) scale(1.008);
+  border-color: rgba(212, 175, 55, 0.72);
+  box-shadow:
+    0 18px 36px -14px rgba(0, 0, 0, 0.92),
+    0 0 22px -4px rgba(29, 107, 255, 0.38),
+    0 0 28px -6px rgba(212, 175, 55, 0.32);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 

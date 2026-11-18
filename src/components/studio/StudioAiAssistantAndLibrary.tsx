@@ -10,7 +10,7 @@ import {
   Globe,
   CheckCircle2,
 } from 'lucide-react';
-import { SmartImage } from '../SmartImage';
+import { ImageWithFallback } from '../ImageWithFallback';
 
 interface ChatTurn {
   role: 'user' | 'assistant';
@@ -250,7 +250,7 @@ export function StudioAiAssistantAndLibrary({
               className="bg-[#06070B] border border-white/10 hover:border-[#D4AF37]/45 rounded-xl overflow-hidden flex flex-col transition-colors"
             >
               <div className="h-44 bg-black overflow-hidden">
-                <SmartImage
+                <ImageWithFallback
                   src={lesson.image}
                   alt={lesson.title}
                   className="w-full h-full object-cover"

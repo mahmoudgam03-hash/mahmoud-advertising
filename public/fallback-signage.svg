@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B0D13"/>
+      <stop offset="50%" stop-color="#121622"/>
+      <stop offset="100%" stop-color="#090A0F"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#B8891B"/>
+      <stop offset="50%" stop-color="#F5D061"/>
+      <stop offset="100%" stop-color="#D4AF37"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1D6BFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#1D6BFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g opacity="0.16" stroke="#FFFFFF" stroke-width="1">
+    <path d="M0 100H800M0 200H800M0 300H800M0 400H800"/>
+    <path d="M160 0V520M320 0V520M480 0V520M640 0V520"/>
+  </g>
+  <rect x="64" y="88" width="672" height="344" rx="18" fill="#0D1018" stroke="url(#gold)" stroke-width="2.5"/>
+  <rect x="86" y="110" width="628" height="300" rx="12" fill="#090B10" stroke="#1D6BFF" stroke-opacity="0.45" stroke-width="1.5"/>
+  <rect x="120" y="148" width="560" height="3" fill="url(#blue)"/>
+  <rect x="120" y="368" width="560" height="3" fill="url(#gold)"/>
+  <text x="400" y="246" text-anchor="middle" fill="url(#gold)" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" letter-spacing="2">MAHMOUD SHAABAN</text>
+  <text x="400" y="294" text-anchor="middle" fill="#60A5FA" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" letter-spacing="3">SMART ADVERTISING &amp; SIGNAGE</text>
+</svg>
